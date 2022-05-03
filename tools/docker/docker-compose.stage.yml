@@ -27,6 +27,7 @@ x-environment:
   - PINAKES_POSTGRES_USER=admin
   - PINAKES_POSTGRES_PASSWORD=admin
   - PINAKES_POSTGRES_SSL_MODE=disable
+  - PINAKES_REDIS_UNIX_SOCKET_PATH=/tmp/docker/redis.sock
 
 services:
   frontend:
@@ -56,6 +57,7 @@ services:
       - 'media_files:/opt/app-root/src/media'
       - 'static_files:/opt/app-root/src/staticfiles'
       - "control_startup:/startup"
+      - ./redis-socket/:/tmp/docker/:z
     depends_on:
       - keycloak-setup
       - postgres
@@ -87,6 +89,7 @@ services:
     environment: *catalog-env
     volumes:
       - 'media_files:/opt/app-root/src/media'
+      - ./redis-socket/:/tmp/docker/:z
     depends_on:
       - app
       - redis
@@ -102,6 +105,8 @@ services:
       - redis
       - keycloak-setup
     command: "python manage.py cronjobs"
+    volumes:
+      - ./redis-socket/:/tmp/docker/:z
 
   keycloak-app:
     image: 'quay.io/keycloak/keycloak:15.0.2'
@@ -142,9 +147,14 @@ services:
 
   redis:
     image: "docker.io/redis:alpine"
+    volumes:
+      - "./redis.conf:/etc/redis.conf:z"
+      - ./redis-socket/:/tmp/docker/:z
+    command: redis-server /etc/redis.conf
 
 volumes:
   pg_data: {}
   media_files: {}
   static_files: {}
   control_startup: {}
+  redis_socket: {}
